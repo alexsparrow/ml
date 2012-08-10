@@ -1,0 +1,7 @@
+Repository for machine learning/statistics related things.
+
+* imperium
+  Code for Kaggle contest here: http://www.kaggle.com/c/detecting-insults-in-social-commentary/
+  Currently using two models:
+    * Naive Bayes in Python
+    * Wordbagging in Python, SVM/Random Forest fit in R
