@@ -67,7 +67,8 @@ if __name__ == "__main__":
            False:{True:0, False:0}}
     for rec in train:
         bc.train(rec[0], rec[2])
-    outf = open("imperium.csv", "w")
+    outf = open("bayes_submit.csv", "w")
+    outf.write('"Insult","Date","Comment"\n')
     for rec in test:
         p = bc.prob(rec[2], logs=True)
         pnorm = p[True] + p[False]
