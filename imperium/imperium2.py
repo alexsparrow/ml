@@ -1,12 +1,28 @@
 from utils import load_data
 from wordbag import WordBag
+import datetime
 
 def run(fname, recs, bag, test=False):
     punct_bag = dict([(b,a) for a, b in enumerate(["!", ".", ":", ";","?", ",", "'", '"'])])
+    punct_names = {"!":"exclamation",
+                   ".":"fullstop",
+                   ":":"colon",
+                   ";":"semicolon",
+                   "?":"question",
+                   ",":"comma",
+                   "'":"invertedcomma",
+                   '"':"quote"
+                }
     print punct_bag
     out = open(fname, "w")
     if not test: out.write("Response,")
-    out.write(",".join(["WB%d" % x for x in range(len(bag) + len(punct_bag))]))
+    bag_sorted = sorted(bag.items(), key=lambda x : x[1])
+    punct_sorted = sorted(punct_bag.items(), key=lambda x: x[1])
+    headers = ["WB_%s" % k for (k,v) in bag_sorted]
+    headers += ["PUNCT_%s" % punct_names[k] for (k,v) in punct_sorted]
+    headers += ["Hour", "Weekday"]
+    out.write(",".join(headers))
+    #out.write(",".join(["WB%d" % x for x in range(len(bag) + len(punct_bag))]))
     out.write("\n")
     for rec in recs:
         if not test: out.write({True:"1", False:"0"}[rec[0]] + ",") 
@@ -14,6 +30,16 @@ def run(fname, recs, bag, test=False):
         out.write(",")
         punct_vec = WordBag.vector(rec[3].strip('"').strip(), punct_bag)
         out.write(",".join(["%d" % s for s in punct_vec]))
+        if len(rec[1].strip()):
+            y = int(rec[1][:4])
+            m = int(rec[1][4:6])
+            d = int(rec[1][6:8])
+            h = int(rec[1][8:10])
+            dt = datetime.date(y, m,d)
+            out.write(",%d" % int(rec[1][8:10]))
+            out.write(",%d" % dt.weekday())
+        else:
+            out.write(",NA,NA")
         out.write("\n")
 
 def cmp(fname1, fname2):
