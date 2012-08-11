@@ -21,7 +21,7 @@ test.prob <- attr(test.p, "probabilities")[,2]
 
 # Write the output
 df <- read.csv("data/imperium_test.csv", head=TRUE)
-df <- data.frame(c(data.frame(Insult=ps.test), df))
+df <- data.frame(c(data.frame(Insult=test.p), df))
 write.csv(df, "wordbag_submit.csv", row.names=FALSE) 
 
 # Fit random forest to data
@@ -35,3 +35,6 @@ print(colAUC(train.rf.p[,2], train$Response))
 test.rf.p <- predict(model.rf, test, type="prob")
 df$Insult <- test.rf.p[,2]
 write.csv(df, "wordbag_rf_submit.csv", row.names=FALSE)
+
+pdf("roc.pdf")
+colAUC(train.rf.p[,2], train$Response, alg="ROC", plotROC=TRUE)

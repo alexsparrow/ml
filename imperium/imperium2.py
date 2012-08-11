@@ -2,13 +2,18 @@ from utils import load_data
 from wordbag import WordBag
 
 def run(fname, recs, bag, test=False):
+    punct_bag = dict([(b,a) for a, b in enumerate(["!", ".", ":", ";","?", ",", "'", '"'])])
+    print punct_bag
     out = open(fname, "w")
     if not test: out.write("Response,")
-    out.write(",".join(["WB%d" % x for x in range(len(bag))]))
+    out.write(",".join(["WB%d" % x for x in range(len(bag) + len(punct_bag))]))
     out.write("\n")
     for rec in recs:
         if not test: out.write({True:"1", False:"0"}[rec[0]] + ",") 
         out.write(",".join(["%d" % s for s in WordBag.vector(rec[2], bag)]))
+        out.write(",")
+        punct_vec = WordBag.vector(rec[3].strip('"').strip(), punct_bag)
+        out.write(",".join(["%d" % s for s in punct_vec]))
         out.write("\n")
 
 def cmp(fname1, fname2):
@@ -47,7 +52,7 @@ if __name__ == "__main__":
     # Top 300 words by frequency
     bag = wbag.bag(300)
 
-    # For each word calculate the difference in proportions of between the good/bad set
+    # For each word calculate the difference in proportions between the good/bad set
     diffs = []
     for word, idx in bag.iteritems():
         diff = abs(float(good.get(word, 0))/good_tot - float(bad.get(word, 0))/bad_tot)
