@@ -1,6 +1,6 @@
 # Import training data
 print("Loading data")
-train <- read.csv("wordbag_train.csv", head=TRUE)
+train <- read.csv("process/wordbag2_train.csv", head=TRUE)
 train$Response <- as.factor(train$Response)
 
 # Fill in missing NA values
@@ -9,7 +9,7 @@ train$Hour[is.na(train$Hour)] <- mean(train$Hour, na.rm = TRUE)
 train$Weekday[is.na(train$Weekday)] <- median(train$Weekday, na.rm = TRUE)
 train$Weekday <- as.factor(train$Weekday)
 
-test <- read.csv("wordbag_test.csv")
+test <- read.csv("process/wordbag2_test.csv")
 test$Hour[is.na(test$Hour)] <- mean(test$Hour, na.rm = TRUE)
 test$Weekday[is.na(test$Weekday)] <- median(test$Weekday, na.rm = TRUE)
 test$Weekday <- as.factor(test$Weekday)
@@ -46,13 +46,13 @@ print(colAUC(train.rf.p[,2], train$Response))
 # Predict and write out
 print("Writing out RF predictions")
 test.rf.p <- predict(model.rf, test, type="prob")
-df$Insult <- test.rf.p[,2]
+df <- data.frame(Insult=test.rf.p[,2], df)
 write.csv(df, "wordbag_rf_submit.csv", row.names=FALSE)
 
 library(ggplot2)
 # Output some plots
 print("Plotting")
-pdf("plots.pdf", width=7, height=14)
+pdf("plots.pdf", width=7, height=40)
 colAUC(train.rf.p[,2], train$Response, alg="ROC", plotROC=TRUE)
 lines( par()$usr[1:2], par()$usr[3:4] )
 
