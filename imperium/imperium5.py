@@ -113,8 +113,8 @@ def run(fname, word_bag, tag_bag, punct_bag, ne_bag):
         yield vals
 
 if __name__ == "__main__":
-    n_words_top_by_sd = 100
-    n_words_total = 200
+    n_words_top_by_sd = 200 # was 100
+    n_words_total = 300 # was 200 
 
     n_tags_top_by_sd = 30
     n_tags_total = 50
