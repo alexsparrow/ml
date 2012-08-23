@@ -162,8 +162,16 @@ blend <- function(){
     return(mix)
 }
 
+prepare.submit <- function(name){
+    filename <- paste('predictions/', name, '.csv', sep='');
+    response <- read.csv(filename);
+    df <- read.csv("data/imperium_test.csv")
+    df <- data.frame(Insult=response, df)
+    write.csv(df, paste('submit/', name, '.csv', sep=''), row.names=F)
+}
+ 
 importance.plots <- function(fname, model.rf){
-    pdf(fname, width=7, height=40)
+    pdf(fname, width=7, height=50)
     # Produce some variable importance plots
     rf.importance <- data.frame(name = rownames(model.rf$importance[,0]), 
                                 MeanDecreaseAccuracy = as.vector(model.rf$importance[,3]), 

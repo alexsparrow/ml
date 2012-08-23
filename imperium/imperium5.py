@@ -5,6 +5,7 @@ from string import punctuation
 import itertools
 import csv
 import datetime
+import itertools
 
 punct_names = {"!":"exclamation",
                ".":"fullstop",
@@ -32,6 +33,7 @@ class Counts:
         self._tag_count = dict([(cat, Counter()) for cat in self._categories])
         self._ne_count = dict([(cat, Counter()) for cat in self._categories])
         self._punct_count = dict([(cat, Counter()) for cat in self._categories])
+        self._pair_count = dict([(cat, Counter()) for cat in self._categories])
 
     def word(self, cat, word):
         self._word_count[cat][word] += 1
@@ -39,6 +41,8 @@ class Counts:
         self._tag_count[cat][tag] += 1
     def ne(self, cat, ne):
         self._ne_count[cat][ne] += 1
+    def word_pair(self, cat, pair):
+        self._pair_count[cat][pair] += 1
 
     def prune(self):
         for cat in self._categories:
@@ -86,7 +90,7 @@ def make_vector(bag, vals):
         if val in bag: v[bag[val]] += 1
     return v
 
-def run(fname, word_bag, tag_bag, punct_bag, ne_bag):
+def run(fname, word_bag, tag_bag, punct_bag, ne_bag, pair_bag):
     for rec in json.load(open(fname)):
         vals = []
         if "Insult" in rec: vals.append(rec["Insult"])
@@ -103,14 +107,41 @@ def run(fname, word_bag, tag_bag, punct_bag, ne_bag):
             vals.extend(["NA", "NA"])
         vals.append(len(rec["words_nltk"]))
         vals.append(sum([len(word) for word in rec["words_nltk"]])/float(len(rec["words_nltk"])))
+
+        sents = sentences(rec["words_nltk"])
+        pairs = []
+        for sent in sents:
+            pairs.extend(word_pairs(sent))
+
+        vals.append(sum([len(sent) for sent in sents])/len(sents))
         vals.extend(make_vector(word_bag, rec["words_nltk"]))
         vals.extend(make_vector(tag_bag, rec["pos_tag"]))
         punct = [punct_names[wd] for wd in rec["words_nltk"] if wd in punct_names]
         vals.extend(make_vector(punct_bag, punct))
         vals.extend(make_vector(ne_bag, rec["ne_tags"]))
-
+        vals.extend(make_vector(pair_bag, pairs))
         
         yield vals
+
+def sentences(words):
+    sents = []
+    sent = []
+    for word in words:
+        if word.endswith("."):
+            if len(word) > 1: sent.append(word)
+            sents.append(sent)
+            sent = []
+        else:
+            sent.append(word)
+    if len(sent) > 0: sents.append(sent)
+    return sents
+
+def word_pairs(sentence):
+    pairs = []
+    for pair in [(x,y) for x in sentence for y in sentence]:
+        if(len(pair[0]) > 2 and len(pair[1]) > 2 and pair[0].lower() != pair[1].lower()):
+            pairs.append((pair[0].lower(), pair[1].lower()))
+    return pairs
 
 if __name__ == "__main__":
     n_words_top_by_sd = 200 # was 100
@@ -120,18 +151,26 @@ if __name__ == "__main__":
     n_tags_total = 50
 
     c = Counts([0,1])
+    i = 0
     for rec in json.load(open("process/train.json")):
+        if i % 1000 == 0: pprint(i)
+        i += 1
         insult = int(rec["Insult"])
         for word in rec["words_nltk"]: c.word(insult, word.lower())
         for tag in rec["pos_tag"]: c.tag(insult, tag)
         for ne in rec["ne_tags"]: c.ne(insult, ne)
+        
+        for sent in sentences(rec["words_nltk"]):
+            for pair in word_pairs(sent):
+                c.word_pair(insult, pair)
     c.prune()
     words = set([wd for wd, sd in c.distinctive(c._word_count)[:n_words_top_by_sd]])
     for word, freq in c.most_common(c._word_count):
         if len(words) == n_words_total:
             break
         words.add(word)
-   
+
+    pairs = set([pair for pair, sd in c.distinctive(c._pair_count)[:50]])
     tags = set([tag for tag, sd in c.distinctive(c._tag_count)[:n_tags_top_by_sd]])
     for tag, freq in c.most_common(c._tag_count):
         if len(tags) == n_tags_total: break
@@ -143,22 +182,29 @@ if __name__ == "__main__":
     punct_bag = make_bag(c.get_all(c._punct_count))
     print punct_bag
     ne_bag = make_bag(c.get_all(c._ne_count))
-   
-    csv_header = ["Response", "Hour", "Weekday", "NWords", "AvgWordLength"]
+  
+    pair_bag = make_bag(pairs)
+
+    csv_header = ["Response", "Hour", "Weekday", "NWords", "AvgWordLength", "AvgSentLength"]
     def bag_names(bag, prefix):
         items = sorted(bag.items(), key = lambda x : x[1])
         return ["%s_%s" % (prefix, name) for name, _ in items] 
+
+    def pair_bag_names(bag, prefix):
+        items = sorted(bag.items(), key = lambda x : x[1])
+        return ["%s_%s_%s" % (prefix, p1, p2) for (p1, p2), _ in items]
 
     csv_header += bag_names(word_bag, "Word")
     csv_header += bag_names(tag_bag, "Tag")
     csv_header += bag_names(punct_bag, "Punct")
     csv_header += bag_names(ne_bag, "NE")
+    csv_header += pair_bag_names(pair_bag, "Pair")
 
     writer = csv.writer(open("process/wordbag2_train.csv", "w"))
     writer.writerow(csv_header)
-    for obj in run("process/train.json", word_bag, tag_bag, punct_bag, ne_bag):
+    for obj in run("process/train.json", word_bag, tag_bag, punct_bag, ne_bag, pair_bag):
         writer.writerow(obj)
     writer = csv.writer(open("process/wordbag2_test.csv", "w"))
     writer.writerow(csv_header)
-    for obj in run("process/test.json", word_bag, tag_bag, punct_bag, ne_bag):
+    for obj in run("process/test.json", word_bag, tag_bag, punct_bag, ne_bag, pair_bag):
         writer.writerow(obj)
