@@ -1,0 +1,75 @@
+## Test 
+
+<< echo = False, results="hidden">>=
+import numpy as np
+import matplotlib.pyplot as plt 
+import matplotlib.colors as colors
+import matplotlib.cm as cm
+
+files = {
+    "gridsearch" : "%s/gridsearch.out",
+    "gradient_descent" : "%s/gradient_descent.out",
+    "gradient_descent_bold" : "%s/gradient_descent_bold.out",
+    "stochastic_gradient_descent" : "%s/stochastic_gradient_descent.out"
+}
+
+files = dict([(key, path % "../out") for key, path in files.iteritems()])
+
+shape = (501, 501)
+arr = np.genfromtxt(files["gridsearch"], delimiter='\t')
+x = np.reshape(arr[: , 1], shape)
+y = np.reshape(arr[: , 2], shape)
+z = np.reshape(arr[: , 3], shape)
+
+arr2 = np.genfromtxt(files["gradient_descent"], delimiter='\t')
+gd_x = arr2[:, 4]
+gd_y = arr2[:, 5]
+
+arr3 = np.genfromtxt(files["gradient_descent_bold"], delimiter='\t')
+bold_x = arr3[:, 4]
+bold_y = arr3[:, 5]
+
+arr4 = np.genfromtxt(files["stochastic_gradient_descent"], delimiter='\t')
+stoch_x = arr4[:, 3]
+stoch_y = arr4[:, 4]
+
+def arrows(ax, x, y, *args, **kwargs):
+    ax.quiver(x[:-1], y[:-1], x[1:] - x[:-1], y[1:] - y[:-1],
+              scale_units='xy', angles='xy', scale=1, *args, **kwargs)
+@
+
+This is a zoomed out view of the various gradient descent algorithms.
+
+<<fig = True, echo=False, caption = 'Zoomed out'>>=
+fig = plt.figure()
+ax = fig.add_subplot(111)
+CS = ax.contour(x, y, z, norm=colors.LogNorm(), colors='k')
+arrows(ax, gd_x, gd_y, color='r')
+arrows(ax, bold_x, bold_y, color='b')
+arrows(ax, stoch_x, stoch_y, color='g')
+ax.grid()
+ax.set_xlim(-50, 100)
+ax.set_ylim(-100, 100)
+@
+
+
+<< fig=True, echo=False, caption="Zoomed in view">>=
+fig = plt.figure()
+ax = fig.add_subplot(111)
+CS = ax.contour(x, y, z, norm=colors.LogNorm(), colors='k')
+arrows(ax, gd_x, gd_y, color='r')
+arrows(ax, bold_x, bold_y, color='b')
+arrows(ax, stoch_x, stoch_y, color='g')
+ax.grid()
+ax.set_xlim(10, 30)
+ax.set_ylim(0, 20)
+@
+
+<< fig=True, echo=False, caption="Cost vs. iteration for three gradient descent algorithms">>=
+fig = plt.figure()
+ax = fig.add_subplot(111)
+ax.loglog()
+ax.plot(arr2[:, 0], arr2[:, 2], 'r')
+ax.plot(arr3[:, 0], arr3[:, 2], 'b')
+ax.plot(arr4[:, 0], arr4[:, 1], 'g')
+@
